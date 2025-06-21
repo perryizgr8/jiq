@@ -6,20 +6,29 @@ import (
 	jira "github.com/andygrunwald/go-jira"
 )
 
-func SearchIssues(client *jira.Client, query string) ([]jira.Issue, error) {
+type searchResponse struct {
+	Total  int          `json:"total"`
+	Issues []jira.Issue `json:"issues"`
+}
+
+func SearchIssues(client *jira.Client, query string, startAt int) (searchResponse, error) {
 	searchOptions := &jira.SearchOptions{
 		MaxResults: 10,
+		StartAt:    startAt,
 	}
-	jql := fmt.Sprintf("textfields ~ \"%s*\"", query)
+	jql := fmt.Sprintf("textfields ~ \"%s*\" ORDER BY updated DESC", query)
 
 	issues, resp, err := client.Issue.Search(jql, searchOptions)
 	if err != nil {
-		return nil, fmt.Errorf("error searching issues: %w", err)
+		return searchResponse{}, fmt.Errorf("error searching issues: %w", err)
 	}
 
 	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("unexpected response status: %s", resp.Status)
+		return searchResponse{}, fmt.Errorf("unexpected response status: %s", resp.Status)
 	}
 
-	return issues, nil
+	return searchResponse{
+		Total:  resp.Total,
+		Issues: issues,
+	}, nil
 }

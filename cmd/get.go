@@ -22,7 +22,7 @@ var getCmd = &cobra.Command{
 			println("Please provide an issue key.")
 			return
 		}
-		fmt.Printf("baseURL: %s, username: %s, apiToken: %s\n", config.BaseURL, config.Username, config.APIToken)
+		// fmt.Printf("baseURL: %s, username: %s, apiToken: %s\n", config.BaseURL, config.Username, config.APIToken)
 		jc, err := jirac.NewClient(config.BaseURL, config.Username, config.APIToken)
 		if err != nil {
 			println("Error creating Jira client:", err.Error())
@@ -33,9 +33,8 @@ var getCmd = &cobra.Command{
 			println("Error getting issue:", err.Error())
 			return
 		}
-		println("Issue Key:", issue.Key)
-		println("Summary:", issue.Fields.Summary)
-		println("Description:", issue.Fields.Description)
+		fmt.Printf("%s: %s - %s\n", issue.Key, issue.Fields.Summary, issue.Fields.Status.Name)
+		fmt.Println(issue.Fields.Description)
 	},
 }
 

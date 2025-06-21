@@ -4,7 +4,11 @@ Copyright © 2025 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"fmt"
+
+	"github.com/fatih/color"
 	"github.com/perryizgr8/jiq/jirac"
+	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
 )
 
@@ -29,19 +33,44 @@ var findCmd = &cobra.Command{
 			println("Error creating Jira client:", err.Error())
 			return
 		}
-		issues, err := jirac.SearchIssues(jc, query)
+		searchResponse, err := jirac.SearchIssues(jc, query, 0)
 		if err != nil {
 			println("Error searching issues:", err.Error())
 			return
 		}
-		if len(issues) == 0 {
-			println("No issues found for query:", query)
-			return
+		fmt.Printf("Showing 1 to %d of %d matching issues\n", len(searchResponse.Issues), searchResponse.Total)
+		headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
+		columnFmt := color.New(color.FgYellow).SprintfFunc()
+		tbl := table.New("Key", "Summary", "Status")
+		tbl.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)
+		for _, issue := range searchResponse.Issues {
+			tbl.AddRow(issue.Key, issue.Fields.Summary, issue.Fields.Status.Name)
 		}
-		println("Found", len(issues), "issues for query:", query)
-		// for _, issue := range issues {
-		// 	println("Issue Key:", issue.Key, "Summary:", issue.Fields.Summary)
-		// }
+		tbl.Print()
+		numPrinted := len(searchResponse.Issues)
+		for searchResponse.Total > numPrinted {
+			fmt.Println("Show more? (Y/n)")
+			var cmd string
+			fmt.Scanln(&cmd)
+			if cmd != "y" && cmd != "Y" && cmd != "" {
+				break
+			}
+			searchResponse, err = jirac.SearchIssues(jc, query, numPrinted)
+			if err != nil {
+				println("Error searching issues:", err.Error())
+				return
+			}
+			fmt.Printf("Showing %d to %d of %d matching issues\n", numPrinted+1, numPrinted+len(searchResponse.Issues), searchResponse.Total)
+			headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
+			columnFmt := color.New(color.FgYellow).SprintfFunc()
+			tbl := table.New("Key", "Summary", "Status")
+			tbl.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)
+			for _, issue := range searchResponse.Issues {
+				tbl.AddRow(issue.Key, issue.Fields.Summary, issue.Fields.Status.Name)
+			}
+			tbl.Print()
+			numPrinted += len(searchResponse.Issues)
+		}
 	},
 }
 
